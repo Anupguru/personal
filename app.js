@@ -1,34 +1,49 @@
 const express = require('express');
 const path = require('path');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const { v4: uuidv4 } = require('uuid');
+const SequelizeStore = require("connect-session-sequelize")(session.Store);
+const { sequelize } = require('./config/db');
+
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
-const bodyParser = require('body-parser');
-const { v4: uuidv4 } = require('uuid');
-const session = require('express-session');
-const { DataTypes } = require('sequelize');
-const { sequelize, pool } = require('./config/db');
 
 const app = express();
 
-// Middleware setup
-app.set('view engine', 'ejs');
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// Trust proxy in production
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+// Session Store setup
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  tableName: "Session",
+  checkExpirationInterval: 15 * 60 * 1000,
+  expiration: 24 * 60 * 60 * 1000,
+});
 
 // Session middleware setup
 app.use(session({
-  secret: 'your-secret-key',  // Change this to a secure secret
+  secret: 'your-secret-key',  // Replace with a secure secret in production
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: false, // Set to true if using HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
-// Middleware to make user data available to all views
+// Middleware
+app.set('view engine', 'ejs');
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// Make session user available to all views
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   next();
@@ -39,88 +54,64 @@ app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/teacher', teacherRoutes);
 
-// Root route
-app.get('/', (req, res) => {
-  res.render('landing');
-});
-
-let students = []; // Temporary in-memory storage
+// In-memory storage (temporary)
+let students = [];
 let attendanceRecords = [];
 
 // Store SSE clients
 const adminClients = new Set();
 const teacherClients = new Set();
 
-// Middleware for admin SSE endpoint
+// SSE Endpoints
 app.get('/admin/attendance-updates', (req, res) => {
-  // Set headers for SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
 
-  // Add client to the admin set
   adminClients.add(res);
-
-  // Remove client when connection closes
-  req.on('close', () => {
-    adminClients.delete(res);
-  });
+  req.on('close', () => adminClients.delete(res));
 });
 
-// Middleware for teacher SSE endpoint
 app.get('/teacher/student-updates', (req, res) => {
-  // Set headers for SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
 
-  // Add client to the teacher set
   teacherClients.add(res);
-
-  // Remove client when connection closes
-  req.on('close', () => {
-    teacherClients.delete(res);
-  });
+  req.on('close', () => teacherClients.delete(res));
 });
 
-// Function to notify all clients of updates
+// Notify all SSE clients
 function notifyAllClients() {
-  const data = {
-    students: students,
-    attendanceRecords: attendanceRecords
-  };
-
-  const dataString = JSON.stringify(data);
-
-  // Notify admin clients
-  adminClients.forEach(client => {
-    client.write(`data: ${dataString}\n\n`);
+  const data = JSON.stringify({
+    students,
+    attendanceRecords
   });
 
-  // Notify teacher clients
-  teacherClients.forEach(client => {
-    client.write(`data: ${dataString}\n\n`);
-  });
+  adminClients.forEach(client => client.write(`data: ${data}\n\n`));
+  teacherClients.forEach(client => client.write(`data: ${data}\n\n`));
 }
 
+// Landing Page
+app.get('/', (req, res) => {
+  res.render('landing');
+});
+
+// Teacher Dashboard
 app.get('/teacherDashboard', (req, res) => {
-  const selectedClass = req.query.class || '';
-  const selectedSection = req.query.section || '';
-  const selectedDate = req.query.attendanceDate || '';
+  const { class: selectedClass, section: selectedSection, attendanceDate: selectedDate } = req.query;
 
   const filteredStudents = students.filter(student =>
     student.class === selectedClass && student.section === selectedSection
   );
 
-  // Merge attendance status if exists
   const studentsWithStatus = filteredStudents.map(student => {
-    const attendance = attendanceRecords.find(
-      record =>
-        record.studentId === student.id && record.date === selectedDate
+    const attendance = attendanceRecords.find(record =>
+      record.studentId === student.id && record.date === selectedDate
     );
     return {
       ...student,
@@ -136,6 +127,7 @@ app.get('/teacherDashboard', (req, res) => {
   });
 });
 
+// Add Student
 app.post('/teacher/addStudent', (req, res) => {
   const { name, class: studentClass, section } = req.body;
 
@@ -151,22 +143,20 @@ app.post('/teacher/addStudent', (req, res) => {
   };
 
   students.push(newStudent);
-  
-  // Notify all clients about the update
   notifyAllClients();
-  
+
   res.status(200).json({ message: 'Student added successfully', student: newStudent });
 });
 
-// Delete student
+// Delete Student
 app.post('/teacher/deleteStudent/:id', (req, res) => {
   const studentId = req.params.id;
+
   students = students.filter(student => student.id !== studentId);
   attendanceRecords = attendanceRecords.filter(record => record.studentId !== studentId);
-  
-  // Notify all clients about the update
+
   notifyAllClients();
-  
+
   if (req.xhr || req.headers.accept.indexOf('json') > -1) {
     res.json({ success: true });
   } else {
@@ -174,41 +164,27 @@ app.post('/teacher/deleteStudent/:id', (req, res) => {
   }
 });
 
+// Mark Attendance Status
 app.post('/teacher/markStatus/:id', (req, res) => {
   const studentId = req.params.id;
   const { status, date, class: studentClass, section } = req.body;
 
-  // Remove old record if it exists
   attendanceRecords = attendanceRecords.filter(record => !(record.studentId === studentId && record.date === date));
 
-  attendanceRecords.push({
-    studentId,
-    status,
-    date,
-  });
-
-  // Notify all clients about the update
+  attendanceRecords.push({ studentId, status, date });
   notifyAllClients();
 
-  // Redirect back with preserved class/section/date
   res.redirect(`/teacherDashboard?class=${studentClass}&section=${section}&attendanceDate=${date}`);
 });
 
-app.post('/logout', (req, res) => {
-  res.redirect('/');
-});
-
-// Admin dashboard route
+// Admin Dashboard
 app.get('/admin/dashboard', (req, res) => {
-  const selectedClass = req.query.class;
-  const selectedSection = req.query.section;
-  const selectedDate = req.query.date;
+  const { class: selectedClass, section: selectedSection, date: selectedDate } = req.query;
 
   let filteredStudents = students;
   if (selectedClass && selectedSection) {
-    filteredStudents = students.filter(student => 
-      student.class.toString() === selectedClass && 
-      student.section === selectedSection
+    filteredStudents = students.filter(student =>
+      student.class.toString() === selectedClass && student.section === selectedSection
     );
   }
 
@@ -228,12 +204,26 @@ app.get('/admin/dashboard', (req, res) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || 'localhost';
-
-app.listen(PORT, () => {
-  console.log('\x1b[36m%s\x1b[0m', '🚀 Server is running!');
-  console.log('\x1b[36m%s\x1b[0m', `➜ Local:   http://${HOST}:${PORT}`);
-  console.log('\x1b[33m%s\x1b[0m', '\nNote: Press Ctrl+C to stop the server');
+// Logout
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
 });
+
+// Initialize database and start server
+sessionStore.sync()
+  .then(() => sequelize.sync({ force: false }))
+  .then(() => {
+    console.log("✅ Database and session store synchronized!");
+    const PORT = process.env.PORT || 3000;
+    const HOST = process.env.HOST || 'localhost';
+    app.listen(PORT, () => {
+      console.log('\x1b[36m%s\x1b[0m', '🚀 Server is running!');
+      console.log('\x1b[36m%s\x1b[0m', `➜ Local:   http://${HOST}:${PORT}`);
+      console.log('\x1b[33m%s\x1b[0m', '\nNote: Press Ctrl+C to stop the server');
+    });
+  })
+  .catch((error) => {
+    console.error("❌ Error syncing the database or session store:", error);
+  });
