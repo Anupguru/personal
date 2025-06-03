@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teacher Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f6f9fc 0%, #edf2f7 100%);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      padding: 1.5rem 0;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      margin: 0;
+      color: white;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table th {
+      background: #f8fafc;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      padding: 1rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .table td {
+      padding: 1rem;
+      vertical-align: middle;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-present {
+      background: #2ecc71;
+      border-color: #27ae60;
+      color: white;
+    }
+
+    .btn-present:hover {
+      background: #27ae60;
+      color: white;
+    }
+
+    .btn-absent {
+      background: #e74c3c;
+      border-color: #c0392b;
+      color: white;
+    }
+
+    .btn-absent:hover {
+      background: #c0392b;
+      color: white;
+    }
+
+    .form-control, .form-select {
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    .filter-form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+    }
+
+    .status-present {
+      color: #2ecc71;
+      font-weight: 600;
+    }
+
+    .status-absent {
+      color: #e74c3c;
+      font-weight: 600;
+    }
+
+    .status-not-marked {
+      color: #95a5a6;
+      font-weight: 600;
+    }
+
+    .modal-content {
+      border-radius: 15px;
+      border: none;
+    }
+
+    .modal-header {
+      background: #f8fafc;
+      border-radius: 15px 15px 0 0;
+    }
+
+    .modal-footer {
+      background: #f8fafc;
+      border-radius: 0 0 15px 15px;
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .action-buttons form {
+        width: 100%;
+      }
+      .action-buttons button {
+        width: 100%;
+      }
+      .filter-form .col-md-2,
+      .filter-form .col-md-3,
+      .filter-form .col-md-4 {
+        margin-bottom: 1rem;
+      }
+      .container {
+        padding: 15px;
+      }
+      .btn {
+        margin-bottom: 5px;
+        width: 100%;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+
+    .toast {
+      background: white;
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 300px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .toast.success {
+      border-left: 4px solid #2ecc71;
+    }
+
+    .toast.error {
+      border-left: 4px solid #e74c3c;
+    }
+
+    .toast.info {
+      border-left: 4px solid #3498db;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center flex-wrap header-content">
+        <h1><i class="bi bi-person-workspace me-2"></i>Teacher Dashboard</h1>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-white fw-bold"><i class="bi bi-person-circle me-2"></i><%= user.title %>. <%= user.username %></span>
+          <form method="POST" action="/logout" class="m-0">
+            <button class="btn btn-light"><i class="bi bi-box-arrow-right me-2"></i>Log out</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Error/Success Messages -->
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><%= success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+          <h2 class="h4 m-0"><i class="bi bi-calendar-check me-2"></i>Attendance Management</h2>
+          <div class="d-flex gap-2 flex-wrap">
+            <% if (students && students.length > 0) { %>
+              <form method="POST" action="/teacher/submitAttendance" style="display: inline-block;">
+                <input type="hidden" name="class" value="<%= selectedClass %>" />
+                <input type="hidden" name="section" value="<%= selectedSection %>" />
+                <input type="hidden" name="attendanceDate" value="<%= selectedDate %>" />
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to submit attendance? You won\'t be able to mark attendance after submission.')">
+                  <i class="bi bi-check2-all me-2"></i>Submit Attendance
+                </button>
+              </form>
+              <a href="/teacher/downloadStudents?class=<%= encodeURIComponent(selectedClass) %>&section=<%= encodeURIComponent(selectedSection) %>&date=<%= encodeURIComponent(selectedDate) %>" 
+                 class="btn btn-success">
+                <i class="bi bi-download me-2"></i>Download as CSV
+              </a>
+            <% } %>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
+              <i class="bi bi-plus-circle me-2"></i>Add Student
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter form -->
+        <form method="GET" action="/teacher/dashboard" class="filter-form" id="attendanceForm">
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Class</label>
+              <select name="class" class="form-select" required>
+                <option value="">Select Class</option>
+                <% for(let i = 1; i <= 12; i++) { %>
+                  <option value="<%= i %>" <%= selectedClass == i ? 'selected' : '' %>><%= i %></option>
+                <% } %>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">Section</label>
+              <select name="section" class="form-select" required>
+                <option value="">Select Section</option>
+                <% ['A', 'B', 'C', 'D'].forEach(section => { %>
+                  <option value="<%= section %>" <%= selectedSection === section ? 'selected' : '' %>><%= section %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">Date</label>
+              <input type="date" id="attendanceDate" name="attendanceDate" class="form-control" value="<%= selectedDate %>" required />
+            </div>
+            <div class="col-12 col-md-2">
+              <button type="submit" class="btn btn-primary w-100" style="margin-top: 32px;">
+                <i class="bi bi-search me-2"></i>Filter
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Students Table -->
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Class-Section</th>
+                <th>Attendance (<%= selectedDate ? new Date(selectedDate).toLocaleDateString() : 'Select Date' %>)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <% if (students.length === 0) { %>
+                <tr>
+                  <td colspan="4" class="text-center py-4">
+                    <i class="bi bi-emoji-frown me-2"></i>No students found for selected class/section.
+                  </td>
+                </tr>
+              <% } else { %>
+                <% students.forEach(student => { %>
+                  <tr>
+                    <td><i class="bi bi-person me-2"></i><%= student.name %></td>
+                    <td><%= student.class %>-<%= student.section %></td>
+                    <td class="<%= student.status === 'Present' ? 'status-present' : (student.status === 'Absent' ? 'status-absent' : 'status-not-marked') %>">
+                      <i class="bi <%= student.status === 'Present' ? 'bi-check-circle-fill' : (student.status === 'Absent' ? 'bi-x-circle-fill' : 'bi-dash-circle') %> me-2"></i>
+                      <%= student.status || 'Not Marked' %>
+                    </td>
+                    <td>
+                      <div class="d-flex flex-wrap gap-2 action-buttons">
+                        <% if (!student.is_submitted) { %>
+                          <form method="POST" action="/teacher/markStatus/<%= student.id %>" class="attendance-form">
+                            <input type="hidden" name="status" value="Present" />
+                            <input type="hidden" name="attendanceDate" value="<%= selectedDate %>" />
+                            <input type="hidden" name="class" value="<%= selectedClass %>" />
+                            <input type="hidden" name="section" value="<%= selectedSection %>" />
+                            <button type="submit" class="btn btn-present btn-sm">
+                              <i class="bi bi-check-lg me-1"></i>Present
+                            </button>
+                          </form>
+                          <form method="POST" action="/teacher/markStatus/<%= student.id %>" class="attendance-form">
+                            <input type="hidden" name="status" value="Absent" />
+                            <input type="hidden" name="attendanceDate" value="<%= selectedDate %>" />
+                            <input type="hidden" name="class" value="<%= selectedClass %>" />
+                            <input type="hidden" name="section" value="<%= selectedSection %>" />
+                            <button type="submit" class="btn btn-absent btn-sm">
+                              <i class="bi bi-x-lg me-1"></i>Absent
+                            </button>
+                          </form>
+                        <% } %>
+                        <form method="POST" action="/teacher/deleteStudent/<%= student.id %>" class="delete-form">
+                          <input type="hidden" name="class" value="<%= selectedClass %>" />
+                          <input type="hidden" name="section" value="<%= selectedSection %>" />
+                          <input type="hidden" name="attendanceDate" value="<%= selectedDate %>" />
+                          <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?')">
+                            <i class="bi bi-trash me-1"></i>Delete
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Student Modal -->
+  <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form id="addStudentForm" action="/teacher/addStudent" method="POST">
+          <div class="modal-header">
+            <h5 class="modal-title" id="studentModalLabel">
+              <i class="bi bi-person-plus me-2"></i>Add New Student
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Student Name</label>
+              <input type="text" name="name" class="form-control" required placeholder="Enter student name" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Class</label>
+              <select name="class" class="form-select" required>
+                <option value="">Select Class</option>
+                <% for(let i = 1; i <= 12; i++) { %>
+                  <option value="<%= i %>" <%= selectedClass == i ? 'selected' : '' %>><%= i %></option>
+                <% } %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Section</label>
+              <select name="section" class="form-select" required>
+                <option value="">Select Section</option>
+                <% ['A', 'B', 'C', 'D'].forEach(section => { %>
+                  <option value="<%= section %>" <%= selectedSection === section ? 'selected' : '' %>><%= section %></option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x me-2"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-2"></i>Save Student
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Handle add student form submission
+      const addStudentForm = document.getElementById('addStudentForm');
+      if (addStudentForm) {
+        addStudentForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const formData = new FormData(addStudentForm);
+          
+          try {
+            const response = await fetch('/teacher/addStudent', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(Object.fromEntries(formData)),
+            });
+            
+            if (response.ok) {
+              const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+              modal.hide();
+              addStudentForm.reset();
+              window.location.reload();
+            }
+          } catch (error) {
+            console.error('Error:', error);
+          }
+        });
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

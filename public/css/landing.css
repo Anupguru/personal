@@ -1,0 +1,82 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f4f4f4;
+  height: 100vh;
+}
+
+.main-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.card {
+  background: white;
+  padding: 40px 60px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.card h1 {
+  margin-bottom: 10px;
+  font-size: 28px;
+  color: #333;
+}
+
+.card p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.login-options {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+}
+
+.login-box {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  width: 180px;
+  text-align: center;
+}
+
+.icon-placeholder {
+  width: 64px;
+  height: 64px;
+  background: #ddd;
+  color: #777;
+  margin: 0 auto 10px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.login-box h3 {
+  margin: 10px 0;
+  color: #333;
+}
+
+.btn {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 16px;
+  background: #5b2dff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.btn:hover {
+  background: #4020c0;
+}
