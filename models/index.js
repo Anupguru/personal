@@ -9,6 +9,11 @@ User.hasMany(Attendance, {
   onDelete: 'SET NULL',
   onUpdate: 'CASCADE'
 });
+Student.hasMany(Attendance, {
+  foreignKey: 'studentId',
+  as: 'attendances',
+  onDelete: 'CASCADE'
+});
 
 Student.hasMany(Attendance, {
   foreignKey: 'studentId',
