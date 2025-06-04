@@ -2,11 +2,10 @@
   "name": "attehdance",
   "version": "1.0.0",
   "main": "app.js",
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js --ignore 'uploads/*'",
-    "watch": "nodemon --watch '**/*' -e js,ejs,json --ignore 'uploads/*' app.js"
-  },
+ "scripts": {
+  "dev": "nodemon app.js",
+  "start": "node app.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

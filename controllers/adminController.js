@@ -1,10 +1,11 @@
-const pool = require('../config/db'); 
-const { createUser, deleteUserByUsername } = require('../models/userModel');
+const { User, createUser, deleteUserByUsername } = require('../models/userModel'); // Import User model
 
 const renderAdminDashboard = async (req, res) => {
   try {
-    const usersResult = await pool.query('SELECT username, email FROM users ORDER BY username');
-    const users = usersResult.rows;
+    const users = await User.findAll({
+      attributes: ['username', 'email', 'title'], // Added title
+      order: [['username', 'ASC']]
+    });
     res.render('adminDashboard', { users });
   } catch (error) {
     console.error('🔥 Error loading dashboard:', error.message);
@@ -13,14 +14,15 @@ const renderAdminDashboard = async (req, res) => {
 };
 
 const handleAddUser = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, title } = req.body; // Added title
   try {
-    const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (userCheck.rows.length > 0) {
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
       return res.status(400).send('Username already exists. Please choose another one.');
     }
-    const newUser = await createUser({ username, email, password });
-    console.log('User added:', newUser);
+    // createUser from userModel now uses User.create and handles hashing
+    const newUser = await createUser({ username, email, password, title });
+    console.log('User added:', newUser.toJSON()); // Use .toJSON() for plain object if needed
     res.redirect('/admin/dashboard');
   } catch (err) {
     console.error('Error creating user:', err.message);

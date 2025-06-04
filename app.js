@@ -1,10 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
-const { sequelize } = require('./config/db');
+const sequelize = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -101,83 +102,13 @@ app.get('/', (req, res) => {
   res.render('landing');
 });
 
-// Teacher Dashboard
-app.get('/teacherDashboard', (req, res) => {
-  const { class: selectedClass, section: selectedSection, attendanceDate: selectedDate } = req.query;
-
-  const filteredStudents = students.filter(student =>
-    student.class === selectedClass && student.section === selectedSection
-  );
-
-  const studentsWithStatus = filteredStudents.map(student => {
-    const attendance = attendanceRecords.find(record =>
-      record.studentId === student.id && record.date === selectedDate
-    );
-    return {
-      ...student,
-      status: attendance ? attendance.status : null,
-    };
-  });
-
-  res.render('teacherdashboard', {
-    students: studentsWithStatus,
-    selectedClass,
-    selectedSection,
-    selectedDate,
-  });
-});
-
-// Add Student
-app.post('/teacher/addStudent', (req, res) => {
-  const { name, class: studentClass, section } = req.body;
-
-  if (!name || !studentClass || !section) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  const newStudent = {
-    id: uuidv4(),
-    name,
-    class: studentClass,
-    section,
-  };
-
-  students.push(newStudent);
-  notifyAllClients();
-
-  res.status(200).json({ message: 'Student added successfully', student: newStudent });
-});
-
-// Delete Student
-app.post('/teacher/deleteStudent/:id', (req, res) => {
-  const studentId = req.params.id;
-
-  students = students.filter(student => student.id !== studentId);
-  attendanceRecords = attendanceRecords.filter(record => record.studentId !== studentId);
-
-  notifyAllClients();
-
-  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-    res.json({ success: true });
-  } else {
-    res.redirect('back');
-  }
-});
-
-// Mark Attendance Status
-app.post('/teacher/markStatus/:id', (req, res) => {
-  const studentId = req.params.id;
-  const { status, date, class: studentClass, section } = req.body;
-
-  attendanceRecords = attendanceRecords.filter(record => !(record.studentId === studentId && record.date === date));
-
-  attendanceRecords.push({ studentId, status, date });
-  notifyAllClients();
-
-  res.redirect(`/teacherDashboard?class=${studentClass}&section=${section}&attendanceDate=${date}`);
-});
-
 // Admin Dashboard
+// Note: The teacher-specific routes previously here (/teacherDashboard, /teacher/addStudent, etc.)
+// have been removed as they are now handled by routes/teacherRoutes.js,
+// which uses the database and provides more complete functionality.
+// The in-memory 'students' and 'attendanceRecords' arrays are likely remnants
+// and may need to be removed if not used by other parts of the application (e.g., admin dashboard below).
+
 app.get('/admin/dashboard', (req, res) => {
   const { class: selectedClass, section: selectedSection, date: selectedDate } = req.query;
 
