@@ -1,6 +1,8 @@
 // models/userModel.js
 const sequelize = require('../config/db');
 const bcrypt = require('bcrypt');
+const Attendance = require('./attendanceModel'); // Required for associations to work
+
 const { DataTypes, Op } = require('sequelize');
 // Removed: const Attendance = require('./attendanceModel');
 
