@@ -5,7 +5,7 @@ const studentController = require('../controllers/studentController');
 const requireLogin = require('../middlewares/requireLogin');
 router.get('/dashboard', requireLogin, studentController.teacherDashboard);
 
-router.get('/downloadStudents', requireLogin, studentController.downloadStudents); // fix here
+router.get('/downloadStudents', requireLogin, studentController.downloadStudents); 
 
 // rest remain unchanged
 

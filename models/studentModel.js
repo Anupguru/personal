@@ -11,4 +11,5 @@ const Student = sequelize.define('Student', {
   timestamps: false,
 });
 
+
 module.exports = Student;
