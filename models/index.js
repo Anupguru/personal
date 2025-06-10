@@ -1,8 +1,11 @@
+// models/index.js
 const User = require('./userModel');
 const Student = require('./studentModel');
 const Attendance = require('./attendanceModel');
 
-// Define associations directly
+const models = { User, Student, Attendance };
+
+// Define associations here explicitly or call associate methods if defined in models
 User.hasMany(Attendance, {
   foreignKey: 'submitted_by',
   as: 'submitted_attendances',
@@ -26,9 +29,4 @@ Attendance.belongsTo(User, {
   as: 'submitter'
 });
 
-// Export all models
-module.exports = {
-  User,
-  Student,
-  Attendance
-};
+module.exports = models;
