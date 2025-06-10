@@ -1,4 +1,3 @@
-// models/userModel.js
 const sequelize = require('../config/db');
 const bcrypt = require('bcrypt');
 const { DataTypes } = require('sequelize');
@@ -50,6 +49,39 @@ const User = sequelize.define('User', {
   }
 });
 
+// User methods
+
+async function findUserByEmail(email) {
+  return User.findOne({ where: { email } });
+}
+
+async function createUser({ username, email, password, title = 'Mr' }) {
+  return User.create({ username, email, password, title });
+}
+
+async function updateUserTitle(userId, title) {
+  const user = await User.findByPk(userId);
+  if (user) {
+    user.title = title;
+    await user.save();
+    return user;
+  }
+  return null;
+}
+
+async function getAllUsers() {
+  return User.findAll();
+}
+
+async function deleteUserByUsername(username) {
+  return User.destroy({ where: { username } });
+}
+
 module.exports = {
   User,
+  createUser,
+  findUserByEmail,
+  updateUserTitle,
+  getAllUsers,
+  deleteUserByUsername,
 };
